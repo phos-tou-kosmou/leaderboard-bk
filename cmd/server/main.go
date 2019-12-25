@@ -1,18 +1,18 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	_ "github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"leaderboard-bk/cmd/controllers"
 	"leaderboard-bk/cmd/models"
 	"log"
 	"net/http"
+	"strings"
 	"time"
-	_ "time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 var jwtKey = []byte("my_secret_key")
@@ -23,21 +23,20 @@ var users = map[string]string{
 }
 
 /****************************DB INIT AND HANDLER*******************************/
-var db *sql.DB
-
-func init() {
-	var err error
-	db, err = sql.Open("mysql", "mysql://root:root@localhost:3306/studentStore")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err = db.Ping(); err != nil {
-		log.Fatal(err)
-	}
-}
+//var db *sql.DB
+//
+//func init() {
+//	var err error
+//	db, err = sql.Open("mysql", "mysql://root:root@localhost:3306/studentStore")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	if err = db.Ping(); err != nil {
+//		log.Fatal(err)
+//	}
+//}
 /*****************************************************************************/
-
 // Create a struct to read the username and password from the request body
 type Credentials struct {
 	Password string `json:"password"`
@@ -48,15 +47,12 @@ type User struct {
 	*Credentials
 	CreatedAt time.Time
 }
-
 // Create a struct that will be encoded to a JWT.
 // We add jwt.StandardClaims as an embedded type, to provide fields like expiry time
 type Claims struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
 }
-
-
 /*******************STUDENT API ROUTES****************************/
 func StudentIndex(w http.ResponseWriter, r *http.Request) {
 	//switch r.Method {
@@ -66,42 +62,9 @@ func StudentIndex(w http.ResponseWriter, r *http.Request) {
 	//	postHandler(w, r)
 	//}
 
-	if r.Method != "GET" {
-		http.Error(w, http.StatusText(405), 405)
-		return
-	}
 
-	rows, err := db.Query("SELECT * FROM books")
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-	defer rows.Close()
 
-	stus := make([]*models.Student, 0)
-	for rows.Next() {
-		stu := new(models.Student)
-		err := rows.Scan(&stu.ID, &stu.FirstName, &stu.LastName, &stu.GPA, &stu.Sport, &stu.CreatedAt)
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-		}
-		stus = append(stus, stu)
-	}
-	if err = rows.Err(); err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
 
-	for _, stu := range stus {
-		result, err := fmt.Fprint(w, "%d, %s, %s, %.2f, %s", stu.ID, stu.FirstName, stu.LastName, stu.GPA, stu.Sport )
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(result)
-		_, _ = w.Write(studentJSON)
-	}
 	//if err := json.Unmarshal(b, &student); err != nil {
 	//	log.Panic(err.Error())
 	//}
@@ -122,19 +85,47 @@ func StudentIndex(w http.ResponseWriter, r *http.Request) {
 	//log.Println(student.FirstName)
 	//log.Println(string(studentJSON))
 
-
 	//w.Header().Set("Content-Type", "application/json")
 	//w.WriteHeader(http.StatusOK)
 	//_, _ = w.Write(studentJSON)
 }
 
-func StudentFetch(w http.ResponseWriter, r *http.Request){}
+func FetchStudent(w http.ResponseWriter, r *http.Request){
+	controllers.IndexStudents(w, r)
+}
 
-func StudentCreate(w http.ResponseWriter, r *http.Request){}
+type test_struct struct {
+	Test string
+}
+
+func CreateStudent(w http.ResponseWriter, r *http.Request) {
+	//decoder := json.NewDecoder(r.GetBody)
+	//var t test_struct
+	//err := decoder.Decode(&t)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//log.Println(t.Test)
+	_ = r.ParseForm()
+	contact := make(map[string]string)
+	for i := range r.Form {
+		if strings.HasPrefix(i, "Contact[") {
+			rp := strings.NewReplacer("Contact[", "", "]", "")
+			contact[rp.Replace(i)] = r.Form.Get(i)
+		}
+	}
+	log.Println(contact)
+	controllers.InsertStudent(w, r)
+}
+
+func UpdateStudent(w http.ResponseWriter, r *http.Request){
+
+}
+
+func DeleteStudent(w http.ResponseWriter, r *http.Request){}
 /*****************************************************************/
-
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 /*******************SIGN IN AND LANDING**************************/
 func Signin(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
@@ -315,9 +306,11 @@ func main() {
 	router.HandleFunc("/api/signin", Signin)
 	router.HandleFunc("/api/welcome", Welcome)
 	router.HandleFunc("/api/refresh", Refresh)
-	router.HandleFunc("/api/student", StudentIndex)
-	router.HandleFunc("/api/student/fetch", StudentFetch)
-	router.HandleFunc("/api/student/create", StudentCreate)
+	//router.HandleFunc("/api/students", StudentIndex)
+	router.HandleFunc("/api/students", CreateStudent).Methods(http.MethodPost)
+	router.HandleFunc("/api/students/{studentId}", FetchStudent).Methods(http.MethodGet)
+	router.HandleFunc("/api/students/{studentId}", UpdateStudent).Methods(http.MethodPut)
+	router.HandleFunc("/api/students/{studentId}", DeleteStudent).Methods(http.MethodDelete)
 
 	// start the server on port 8000
 
