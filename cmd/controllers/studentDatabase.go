@@ -50,31 +50,31 @@ func IndexStudents(w http.ResponseWriter, r *http.Request) {
 			&stu.GPA,
 			&stu.Sport,
 			&newTime)
-		log.Println(err)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 		}
 		stus = append(stus, stu)
-		//log.Println(stu.FirstName, stu.LastName, stu.GPA, stu.Sport, stu.CreatedAt)
 	}
-	//if err = rows.Err(); err != nil {
-	//	http.Error(w, http.StatusText(500), 500)
-	//	return
-	//}
+	if err = rows.Err(); err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
 
-	//for _, stu := range stus {
-	//	result, err := fmt.Fprint(w, "%d, %s, %s, %d, %s", stu.ID, stu.FirstName, stu.LastName, stu.GPA, stu.Sport)
-	//	if err != nil {
-	//		http.Error(w, http.StatusText(500), 500)
-	//		log.Println(result)
-	//		return
-	//	}
-	//
-	//}
+	for _, stu := range stus {
+		//_, err := fmt.Fprint(w, "%d, %s, %s, %d, %s", stu.ID, stu.FirstName, stu.LastName, stu.GPA, stu.Sport)
+		//if err != nil {
+		//	http.Error(w, http.StatusText(500), 500)
+		//	return
+		//}
+		bytes, err := json.Marshal(stu)
+		if err != nil {
+			log.Panic(err.Error())
+		}
 
-	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
-	//w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"hello":"world"}`))
+		w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(bytes)
+	}
 }
 
 /*******************************************************************************/
