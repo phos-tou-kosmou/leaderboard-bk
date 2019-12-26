@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"leaderboard-bk/cmd/models"
 	"log"
@@ -40,6 +41,7 @@ func IndexStudents(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	stus := make([]*models.Student, 0)
+	var newTime *mysql.NullTime
 	for rows.Next() {
 		stu := new(models.Student)
 		err := rows.Scan(&stu.ID,
@@ -47,27 +49,32 @@ func IndexStudents(w http.ResponseWriter, r *http.Request) {
 			&stu.LastName,
 			&stu.GPA,
 			&stu.Sport,
-			&stu.CreatedAt)
+			&newTime)
+		log.Println(err)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 		}
 		stus = append(stus, stu)
+		//log.Println(stu.FirstName, stu.LastName, stu.GPA, stu.Sport, stu.CreatedAt)
 	}
-	if err = rows.Err(); err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	//if err = rows.Err(); err != nil {
+	//	http.Error(w, http.StatusText(500), 500)
+	//	return
+	//}
 
-	for _, stu := range stus {
-		result, err := fmt.Fprint(w, "%d, %s, %s, %.2f, %s", stu.ID, stu.FirstName, stu.LastName, stu.GPA, stu.Sport )
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(result)
-		_, _ = w.Write([]byte(`{"test":"this is a test"}`))
-	}
+	//for _, stu := range stus {
+	//	result, err := fmt.Fprint(w, "%d, %s, %s, %d, %s", stu.ID, stu.FirstName, stu.LastName, stu.GPA, stu.Sport)
+	//	if err != nil {
+	//		http.Error(w, http.StatusText(500), 500)
+	//		log.Println(result)
+	//		return
+	//	}
+	//
+	//}
+
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	//w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"hello":"world"}`))
 }
 
 /*******************************************************************************/
@@ -81,12 +88,14 @@ func ModifyStudent(w http.ResponseWriter, r *http.Request) {
 	}
 	stu := models.Student{}
 	for selDB.Next() {
+		var ID int
 		var firstName, lastName, sport string
 		var gpa float32
-		err = selDB.Scan(&firstName, &lastName, &gpa, &sport)
+		err = selDB.Scan(&ID, &firstName, &lastName, &gpa, &sport)
 		if err != nil {
 			panic(err.Error())
 		}
+		stu.ID = ID
 		stu.FirstName = firstName
 		stu.LastName = lastName
 		stu.GPA = gpa
@@ -99,8 +108,6 @@ func ModifyStudent(w http.ResponseWriter, r *http.Request) {
 
 func InsertStudent(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
-	//log.Println(r)
-	//log.Println("I am here")
 	if r.Method == "POST" {
 		var s *models.Student_test
 		err := json.NewDecoder(r.Body).Decode(&s)
@@ -114,17 +121,17 @@ func InsertStudent(w http.ResponseWriter, r *http.Request) {
 		gpa := s.GPA
 		sport := s.Sport
 		insForm, err :=
-			db.Prepare("INSERT INTO leaderboard.student_test(firstName, lastName, gpa, sport) VALUES(?, ?, ?, ?)")
+			db.Prepare("INSERT INTO leaderboard.students(firstName, lastName, gpa, sport) VALUES(?, ?, ?, ?)")
 		if err != nil {
 			panic(err.Error())
 		}
 		_, _ = insForm.Exec(firstName, lastName, gpa, sport)
-		//fts := fmt.Sprintf("f%",  gpa)
-		//log.Println(
-		//	"INSERT: First Name: " + firstName +
-		//	" | Last Name: " + lastName +
-		//	" | GPA: " + fts +
-		//	" | Sport " + sport)
+		fts := fmt.Sprintf("f%",  gpa)
+		log.Println(
+			"INSERT: First Name: " + firstName +
+			" | Last Name: " + lastName +
+			" | GPA: " + fts +
+			" | Sport " + sport)
 	}
 	defer db.Close()
 	http.Redirect(w, r, "/", 301)

@@ -38,10 +38,10 @@ type Student_test struct {
 }
 
 type Student struct {
-	ID int
+	ID int `json:"id"`
 	FirstName string `json:"first_name"`
 	LastName string `json:"last_name"`
 	GPA float32 `json:"gpa"`
 	Sport string `json:"sport"`
-	CreatedAt time.Time ""
+	CreatedAt time.Time `json:"t_stamp"`
 }
