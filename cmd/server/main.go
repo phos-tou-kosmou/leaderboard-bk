@@ -7,7 +7,6 @@ import (
 	"leaderboard-bk/cmd/models"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,113 +21,19 @@ var users = map[string]string{
 	"user2": "password2",
 }
 
-/****************************DB INIT AND HANDLER*******************************/
-//var db *sql.DB
-//
-//func init() {
-//	var err error
-//	db, err = sql.Open("mysql", "mysql://root:root@localhost:3306/studentStore")
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//
-//	if err = db.Ping(); err != nil {
-//		log.Fatal(err)
-//	}
-//}
-/*****************************************************************************/
-// Create a struct to read the username and password from the request body
-type Credentials struct {
-	Password string `json:"password"`
-	Username string `json:"username"`
-}
-
-type User struct {
-	*Credentials
-	CreatedAt time.Time
-}
-// Create a struct that will be encoded to a JWT.
-// We add jwt.StandardClaims as an embedded type, to provide fields like expiry time
-type Claims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
-}
 /*******************STUDENT API ROUTES****************************/
-func StudentIndex(w http.ResponseWriter, r *http.Request) {
-	//switch r.Method {
-	//case "GET":
-	//	getHandler(w, r)
-	//case "POST":
-	//	postHandler(w, r)
-	//}
-
-
-
-
-	//if err := json.Unmarshal(b, &student); err != nil {
-	//	log.Panic(err.Error())
-	//}
-	//
-	////log.Println(student)
-	//
-	//err = json.NewDecoder(r.Body).Decode(&student)
-	//if err != nil {
-	//	log.Println(err.Error())
-	//}
-	//
-	//student.CreatedAt = time.Now().Local()
-	//
-	//studentJSON, err := json.Marshal(newb)
-	//if err != nil {
-	//	panic(err.Error())
-	//}
-	//log.Println(student.FirstName)
-	//log.Println(string(studentJSON))
-
-	//w.Header().Set("Content-Type", "application/json")
-	//w.WriteHeader(http.StatusOK)
-	//_, _ = w.Write(studentJSON)
-}
-
-func FetchStudent(w http.ResponseWriter, r *http.Request){
-	controllers.IndexStudents(w, r)
-}
-
-type test_struct struct {
-	Test string
-}
-
-func CreateStudent(w http.ResponseWriter, r *http.Request) {
-	//decoder := json.NewDecoder(r.GetBody)
-	//var t test_struct
-	//err := decoder.Decode(&t)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//log.Println(t.Test)
-	_ = r.ParseForm()
-	contact := make(map[string]string)
-	for i := range r.Form {
-		if strings.HasPrefix(i, "Contact[") {
-			rp := strings.NewReplacer("Contact[", "", "]", "")
-			contact[rp.Replace(i)] = r.Form.Get(i)
-		}
-	}
-	log.Println(contact)
-	controllers.InsertStudent(w, r)
-}
-
-func UpdateStudent(w http.ResponseWriter, r *http.Request){
-
-}
-
-func DeleteStudent(w http.ResponseWriter, r *http.Request){}
+type test_struct struct {FirstName string `json:"first_name"`}
+func StudentsIndex(w http.ResponseWriter, r *http.Request) {controllers.IndexStudents(w, r)}
+func CreateStudent(w http.ResponseWriter, r *http.Request) {controllers.InsertStudent(w, r)}
+func FetchStudent(w http.ResponseWriter, r *http.Request) {controllers.IndexStudents(w, r)}
+//func UpdateStudent(w http.ResponseWriter, r *http.Request) {controllers.EditOfStudent(w, r)}
+func DeleteStudent(w http.ResponseWriter, r *http.Request) {controllers.DeleteStudent(w, r)}
 /*****************************************************************/
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
 /*******************SIGN IN AND LANDING**************************/
 func Signin(w http.ResponseWriter, r *http.Request) {
-	var creds Credentials
+	var creds models.Credentials
 	// Get the JSON body and decode into credentials
 	err := json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
@@ -154,7 +59,7 @@ func Signin(w http.ResponseWriter, r *http.Request) {
 	// here, we have kept it as 5 minutes
 	expirationTime := time.Now().Add(5 * time.Minute)
 	// Create the JWT claims, which includes the username and expiry time
-	claims := &Claims{
+	claims := &models.Claims{
 		Username: creds.Username,
 		StandardClaims: jwt.StandardClaims{
 			// In JWT, the expiry time is expressed as unix milliseconds
@@ -270,7 +175,7 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 	tknStr := c.Value
 
 	// Initialize a new instance of `Claims`
-	claims := &Claims{}
+	claims := &models.Claims{}
 
 	// Parse the JWT string and store the result in `claims`.
 	// Note that we are passing the key in this method as well. This method will return an error
@@ -306,10 +211,10 @@ func main() {
 	router.HandleFunc("/api/signin", Signin)
 	router.HandleFunc("/api/welcome", Welcome)
 	router.HandleFunc("/api/refresh", Refresh)
-	//router.HandleFunc("/api/students", StudentIndex)
+	router.HandleFunc("/api/all_students", StudentsIndex)
 	router.HandleFunc("/api/students", CreateStudent).Methods(http.MethodPost)
 	router.HandleFunc("/api/students/{studentId}", FetchStudent).Methods(http.MethodGet)
-	router.HandleFunc("/api/students/{studentId}", UpdateStudent).Methods(http.MethodPut)
+	//router.HandleFunc("/api/students/{studentId}", UpdateStudent).Methods(http.MethodPut)
 	router.HandleFunc("/api/students/{studentId}", DeleteStudent).Methods(http.MethodDelete)
 
 	// start the server on port 8000

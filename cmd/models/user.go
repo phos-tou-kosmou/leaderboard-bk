@@ -18,14 +18,30 @@ type Credentials struct {
 	Username string `json:"username"`
 }
 
+// Create a struct to read the username and password from the request body
 type User struct {
 	*Credentials
 	CreatedAt time.Time
 }
-
 // Create a struct that will be encoded to a JWT.
 // We add jwt.StandardClaims as an embedded type, to provide fields like expiry time
 type Claims struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
+}
+
+type Student_test struct {
+	FirstName string `json:"first_name"`
+	LastName string `json:"last_name"`
+	GPA int `json:"gpa"`
+	Sport string `json:"sport"`
+}
+
+type Student struct {
+	ID int
+	FirstName string `json:"first_name"`
+	LastName string `json:"last_name"`
+	GPA float32 `json:"gpa"`
+	Sport string `json:"sport"`
+	CreatedAt time.Time ""
 }
