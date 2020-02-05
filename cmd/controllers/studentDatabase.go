@@ -102,6 +102,7 @@ func ModifyStudent(w http.ResponseWriter, r *http.Request) {
 		stu.Sport = sport
 	}
 	defer db.Close()
+	http.Redirect(w, r, "/", 301)
 }
 
 /******************************************************************************/
